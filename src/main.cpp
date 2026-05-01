@@ -1,5 +1,5 @@
+#include "effects/BezierFadeEffect.h"
 #include "effects/FadeEffect.h"
-#include "effects/IEffect.h"
 #include "hue/HueController.h"
 // #include "ndi/NDIController.h"
 #include "utils/SignalHandler.h"
@@ -21,6 +21,8 @@ void displayMainMenu() {
 int main(int argc, char *argv[]) {
     // Register signal handler for Ctrl+C
     SignalHandler::setup();
+    HueController hueController;
+    bool initialized = false;
 
     int choice = -1;
 
@@ -29,6 +31,7 @@ int main(int argc, char *argv[]) {
 
         if (!(std::cin >> choice)) {
             std::cin.clear();
+            if (SignalHandler::isShutdownRequested()) break;
             std::cin.ignore(10000, '\n');
             std::cout << "Invalid input. Please enter a number." << std::endl;
             continue;
@@ -40,11 +43,15 @@ int main(int argc, char *argv[]) {
             switch (choice) {
             case 1: {
                 std::cout << "\n=== Starting Hue Debug Mode ===" << std::endl;
-                HueController hueController;
-                if (hueController.initialize()) {
+                if (!initialized) {
+                    initialized = hueController.initialize();
+                }
+
+                if (initialized) {
                     auto huestream = hueController.getHueStream();
-                    auto fade = std::make_shared<FadeEffect>(huestream);
-                    hueController.runEffect(fade);
+                    // auto fade = std::make_shared<FadeEffect>(huestream);
+                    auto bezier = std::make_shared<BezierFadeEffect>(huestream);
+                    hueController.runEffect(bezier);
                 }
                 break;
             }
