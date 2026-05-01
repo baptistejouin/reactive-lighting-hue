@@ -1,8 +1,11 @@
+#include "effects/FadeEffect.h"
+#include "effects/IEffect.h"
 #include "hue/HueController.h"
 // #include "ndi/NDIController.h"
 #include "utils/SignalHandler.h"
 #include <csignal>
 #include <iostream>
+#include <memory>
 
 void displayMainMenu() {
     std::cout << "\n================================" << std::endl;
@@ -39,7 +42,9 @@ int main(int argc, char *argv[]) {
                 std::cout << "\n=== Starting Hue Debug Mode ===" << std::endl;
                 HueController hueController;
                 if (hueController.initialize()) {
-                    hueController.runFadeEffect();
+                    auto huestream = hueController.getHueStream();
+                    auto fade = std::make_shared<FadeEffect>(huestream);
+                    hueController.runEffect(fade);
                 }
                 break;
             }

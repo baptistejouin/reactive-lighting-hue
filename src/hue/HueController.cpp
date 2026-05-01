@@ -1,7 +1,8 @@
 #include "HueController.h"
-#include "../effects/FadeEffect.h"
+#include "../effects/IEffect.h"
 #include "../utils/SignalHandler.h"
 #include <iostream>
+#include <memory>
 
 HueController::HueController() {}
 
@@ -12,7 +13,8 @@ bool HueController::initialize() {
         std::cout << "Setting up HueStream library..." << std::endl;
 
         m_config = std::make_shared<Config>(
-            "LightEffects", "MacBook", PersistenceEncryptionKey("secret_key"));
+            "LightEffects", "MacBook",
+            PersistenceEncryptionKey("secret_key")); // TODO
 
         m_huestream = std::make_shared<HueStream>(m_config);
 
@@ -78,19 +80,12 @@ void HueController::connectToBridge() {
     }
 }
 
-void HueController::runFadeEffect() {
-    if (m_huestream->IsStreamableBridgeLoaded() ||
-        m_huestream->IsBridgeStreaming()) {
-        std::cout << "\nStarting Fade In/Out effect..." << std::endl;
-        FadeEffect fadeEffect(m_huestream);
+std::shared_ptr<HueStream> HueController::getHueStream() {
+    return m_huestream;
+};
 
-        // Pass a lambda that checks the shutdown status
-        fadeEffect.play([]() { return SignalHandler::isShutdownRequested(); });
-    } else {
-        std::cout << "\nNo streamable bridge available" << std::endl;
-        std::cout << "Configure an entertainment area in the Philips Hue app"
-                  << std::endl;
-    }
+void HueController::runEffect(std::shared_ptr<IEffect> effect) {
+    effect->play([]() { return SignalHandler::isShutdownRequested(); });
 }
 
 void HueController::shutdown() {
