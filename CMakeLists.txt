@@ -7,6 +7,7 @@ endif()
 
 # ---Project Configuration---
 project(boiler-hue-edk LANGUAGES C CXX)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS src/*)

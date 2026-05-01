@@ -1,20 +1,20 @@
 #ifndef FADE_EFFECT_H
 #define FADE_EFFECT_H
 
-#include <memory>
 #include <huestream/HueStream.h>
-#include <huestream/effect/effects/ManualEffect.h>
 #include <huestream/common/data/Color.h>
+#include <huestream/effect/effects/ManualEffect.h>
+#include <memory>
 
 class FadeEffect {
-private:
+  private:
     std::shared_ptr<huestream::HueStream> _huestream;
     std::shared_ptr<huestream::ManualEffect> _currentEffect;
 
-public:
+  public:
     FadeEffect(std::shared_ptr<huestream::HueStream> huestream);
     ~FadeEffect();
-    
+
     void play(std::function<bool()> shouldShutdown);
     void stop();
 };

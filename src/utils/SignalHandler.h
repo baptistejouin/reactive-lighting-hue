@@ -5,12 +5,12 @@
 #include <csignal>
 
 class SignalHandler {
-public:
+  public:
     static void setup();
     static bool isShutdownRequested();
     static void requestShutdown();
 
-private:
+  private:
     static std::atomic<bool> s_shutdownRequested;
     static void signalHandler(int signum);
 };
