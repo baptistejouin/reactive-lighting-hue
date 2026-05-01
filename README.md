@@ -1,4 +1,3 @@
-
 # boiler-hue
 
 Reactive Lighting System for Philips Hue Using the Hue Entertainment Development Kit (EDK), OpenCV, and NDI
@@ -47,14 +46,29 @@ after that, start the installation by opening the .pkg
 Download the SDK from the official NDI site and complete the required form.
 https://ndi.video/for-developers/ndi-sdk/
 
--> After extracting the package, copy:
+After extracting, copy the `Include` headers and `libndi` library into `lib/`.
 
-- the `Include` (headers) directory  
-- the `libndi` library  
+> NDI is excluded from the build by default. Re-enable it in `CMakeLists.txt` and `src/main.cpp` once the SDK is in place.
 
-into your project's `lib` directory.
+### 4. Install libidn2 (macOS only)
 
-Finally, adjust your CMake configuration to point to these paths as needed.
+Required by curl (bundled in the EDK):
 
-You should now be ready to build the project.
+```sh
+brew install libidn2
+```
 
+## Build
+
+```sh
+cmake -S . -B build
+cmake --build build
+```
+
+> In-source builds (`cmake .`) are not allowed — the build directory must be separate from the source root.
+
+## Run
+
+```sh
+./build/boiler-hue-edk
+```

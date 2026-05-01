@@ -1,6 +1,12 @@
+# Build output (always use: cmake -S . -B build)
+/build/
 
-/build/*
-!/build/.gitkeep
+# In-source build artifacts (should not exist — guarded in CMakeLists.txt)
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+_deps/
+
 /lib
-
 .cache
