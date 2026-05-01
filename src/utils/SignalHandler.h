@@ -3,6 +3,7 @@
 
 #include <atomic>
 #include <csignal>
+#include <sys/signal.h>
 
 class SignalHandler {
   public:
