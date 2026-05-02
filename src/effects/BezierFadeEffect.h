@@ -16,7 +16,7 @@ class BezierFadeEffect : public IEffect {
     BezierFadeEffect(std::shared_ptr<huestream::HueStream> huestream);
     ~BezierFadeEffect();
 
-    void play(std::function<bool()> shouldShutdown);
+    void play(std::function<bool()> shouldShutdown, int bezierEffectIndex = 0);
     void stop();
 };
 

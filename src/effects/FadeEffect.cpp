@@ -12,16 +12,8 @@ FadeEffect::~FadeEffect() { stop(); }
 
 void FadeEffect::play(std::function<bool()> shouldShutdown) {
     std::cout
-        << "\n🌟 Starting fade effect (0% → 100% → 0% in 4 seconds, looping)..."
+        << "\nStarting fade effect (0% → 100% → 0% in 4 seconds, looping)..."
         << std::endl;
-    std::cout << "   Press Ctrl+C to stop gracefully..." << std::endl;
-
-    if (!_huestream->IsStreamableBridgeLoaded() &&
-        !_huestream->IsBridgeStreaming()) {
-        std::cout << "❌ Cannot play effect - no streamable bridge loaded"
-                  << std::endl;
-        return;
-    }
 
     // Create a manual effect
     _currentEffect = std::make_shared<ManualEffect>("fade-effect", 0);
@@ -89,9 +81,7 @@ void FadeEffect::play(std::function<bool()> shouldShutdown) {
         }
     }
 
-    std::cout << "\n⏸️  Stopping fade effect..." << std::endl;
     stop();
-    std::cout << "✅ Fade effect stopped!" << std::endl;
 }
 
 void FadeEffect::stop() {

@@ -1,6 +1,7 @@
 #include "HueController.h"
 #include "../effects/IEffect.h"
 #include "../utils/SignalHandler.h"
+#include <support/network/NetworkConfiguration.h>
 #include <iostream>
 #include <memory>
 
@@ -13,8 +14,9 @@ bool HueController::initialize() {
         std::cout << "Setting up HueStream library..." << std::endl;
 
         m_config = std::make_shared<Config>(
-            "LightEffects", "MacBook",
+            "LightEffects", "MacBookARM",
             PersistenceEncryptionKey("secret_key")); // TODO
+        m_config->SetStreamingMode(STREAMING_MODE_UDP);
 
         m_huestream = std::make_shared<HueStream>(m_config);
 
@@ -36,8 +38,8 @@ bool HueController::initialize() {
 
 void HueController::setupFeedbackCallback() {
     m_huestream->RegisterFeedbackCallback([](const FeedbackMessage &message) {
-        std::cout << "[" << message.GetId() << "] " << message.GetTag()
-                  << std::endl;
+        // std::cout << "[" << message.GetId() << "] " << message.GetTag()
+        //           << std::endl;
 
         if (message.GetId() == FeedbackMessage::ID_DONE_COMPLETED) {
             std::cout << "Connected to bridge with ip: "
@@ -52,26 +54,32 @@ void HueController::setupFeedbackCallback() {
 
 void HueController::connectToBridge() {
     std::cout << "\nConnecting to bridge..." << std::endl;
-    m_huestream->ConnectBridge();
 
-    while (!m_huestream->IsStreamableBridgeLoaded() &&
-           !m_huestream->IsBridgeStreaming() &&
+    auto bridge = std::make_shared<Bridge>(m_config->GetBridgeSettings());
+    // bridge->SetIpAddress("192.168.0.132");
+    bridge->SetIpAddress("127.0.0.1");
+    bridge->SetUser("aSimulatedUser");
+    bridge->SetClientKey("01234567890123456789012345678901");
+    m_huestream->ConnectManualBridgeInfo(bridge);
+
+    while (!m_huestream->IsBridgeStreaming() &&
            !SignalHandler::isShutdownRequested()) {
 
-        auto bridge = m_huestream->GetLoadedBridge();
-        std::cout << "Bridge status: " << bridge->GetStatusTag() << std::endl;
+        auto loadedBridge = m_huestream->GetLoadedBridge();
+        std::cout << "Bridge status: " << loadedBridge->GetStatusTag() << std::endl;
 
-        if (bridge->GetStatus() == BRIDGE_INVALID_GROUP_SELECTED) {
+        if (loadedBridge->GetStatus() == BRIDGE_INVALID_GROUP_SELECTED) {
             std::cout << "Selecting first entertainment group..." << std::endl;
-            m_huestream->SelectGroup(bridge->GetGroups()->at(0));
+            m_huestream->SelectGroup(loadedBridge->GetGroups()->at(0));
 
-        } else if (bridge->GetStatus() != BRIDGE_READY &&
-                   bridge->GetStatus() != BRIDGE_STREAMING) {
+        } else if (loadedBridge->GetStatus() != BRIDGE_READY &&
+                   loadedBridge->GetStatus() != BRIDGE_STREAMING) {
             std::cout << "No streamable bridge configured: "
-                      << bridge->GetStatusTag() << std::endl;
+                      << loadedBridge->GetStatusTag() << std::endl;
             std::cout << "Press Enter to retry..." << std::endl;
             std::cin.get();
-            m_huestream->ConnectBridge();
+            if (SignalHandler::isShutdownRequested()) break;
+            m_huestream->ConnectManualBridgeInfo(bridge);
         }
     }
 

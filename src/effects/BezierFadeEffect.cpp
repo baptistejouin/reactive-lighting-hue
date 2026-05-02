@@ -47,7 +47,8 @@ float solveBezier(float t, BezierCurve curve) {
     return intensity;
 }
 
-void BezierFadeEffect::play(std::function<bool()> shouldShutdown) {
+void BezierFadeEffect::play(std::function<bool()> shouldShutdown,
+                            int bezierEffectIndex) {
     // NOTE: https://easings.net/#
     BezierCurve easeOut;
     easeOut.x1 = 0.83;
@@ -56,6 +57,11 @@ void BezierFadeEffect::play(std::function<bool()> shouldShutdown) {
     easeOut.y2 = 1.00;
 
     std::array<BezierCurve, 1> bezierCurveRegistery = {easeOut};
+
+    if (bezierEffectIndex < 0 ||
+        bezierEffectIndex >= bezierCurveRegistery.size()) {
+        throw std::invalid_argument("Invalid bezier effect index");
+    }
 
     _currentEffect = std::make_shared<ManualEffect>("fade-effect", 0);
     auto group = _huestream->GetLoadedBridge()->GetGroups()->at(0);
@@ -77,7 +83,8 @@ void BezierFadeEffect::play(std::function<bool()> shouldShutdown) {
         for (int step = 0; step <= steps && !shouldShutdown(); step++) {
             float t = static_cast<double>(step) / steps;
             float effectiveT = reverseLoop ? 1.0f - t : t;
-            double intensity = solveBezier(effectiveT, bezierCurveRegistery[0]);
+            double intensity = solveBezier(
+                effectiveT, bezierCurveRegistery[bezierEffectIndex]);
 
             Color currentColor(baseColor.GetR() * intensity,
                                baseColor.GetG() * intensity,
