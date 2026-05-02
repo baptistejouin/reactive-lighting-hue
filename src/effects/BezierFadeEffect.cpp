@@ -1,13 +1,8 @@
 #include "BezierFadeEffect.h"
-#include <array>
+#include "huestream/common/data/Color.h"
 #include <cmath>
 
 using namespace huestream;
-
-BezierFadeEffect::BezierFadeEffect(std::shared_ptr<HueStream> huestream)
-    : _huestream(huestream), _currentEffect(nullptr) {}
-
-BezierFadeEffect::~BezierFadeEffect() { stop(); }
 
 struct BezierCurve {
     float x1;
@@ -47,8 +42,7 @@ float solveBezier(float t, BezierCurve curve) {
     return intensity;
 }
 
-void BezierFadeEffect::play(std::function<bool()> shouldShutdown,
-                            int bezierEffectIndex) {
+huestream::Color BezierFadeEffect::compute(float t) const {
     // NOTE: https://easings.net/#
     BezierCurve easeOut;
     easeOut.x1 = 0.83;
@@ -56,63 +50,12 @@ void BezierFadeEffect::play(std::function<bool()> shouldShutdown,
     easeOut.x2 = 0.17;
     easeOut.y2 = 1.00;
 
-    std::array<BezierCurve, 1> bezierCurveRegistery = {easeOut};
-
-    if (bezierEffectIndex < 0 ||
-        bezierEffectIndex >= bezierCurveRegistery.size()) {
-        throw std::invalid_argument("Invalid bezier effect index");
-    }
-
-    _currentEffect = std::make_shared<ManualEffect>("fade-effect", 0);
-    auto group = _huestream->GetLoadedBridge()->GetGroups()->at(0);
-    auto lights = group->GetLights();
-
     Color baseColor(1.0, 1.0, 1.0);
+    double intensity = solveBezier(t, easeOut);
 
-    _huestream->LockMixer();
-    _huestream->AddEffect(_currentEffect);
-    _currentEffect->Enable();
-    _huestream->UnlockMixer();
+    Color computedColor(baseColor.GetR() * intensity,
+                        baseColor.GetG() * intensity,
+                        baseColor.GetB() * intensity);
 
-    bool reverseLoop = false;
-    const int effectDuration_ms = 8000; // 5s
-    const int updateInterval_ms = 20;
-    const int steps = effectDuration_ms / updateInterval_ms;
-
-    while (!shouldShutdown()) {
-        for (int step = 0; step <= steps && !shouldShutdown(); step++) {
-            float t = static_cast<double>(step) / steps;
-            float effectiveT = reverseLoop ? 1.0f - t : t;
-            double intensity = solveBezier(
-                effectiveT, bezierCurveRegistery[bezierEffectIndex]);
-
-            Color currentColor(baseColor.GetR() * intensity,
-                               baseColor.GetG() * intensity,
-                               baseColor.GetB() * intensity);
-
-            // Update all lights
-            _huestream->LockMixer();
-            for (auto light : *lights) {
-                _currentEffect->SetIdToColor(light->GetId(), currentColor);
-            }
-            _huestream->UnlockMixer();
-
-            // Wait before next update
-            std::this_thread::sleep_for(
-                std::chrono::milliseconds(updateInterval_ms));
-        }
-        // reverse the loop for the next iteration
-        reverseLoop = !reverseLoop;
-    }
-    stop();
-}
-
-void BezierFadeEffect::stop() {
-    if (_currentEffect && _huestream) {
-        _huestream->LockMixer();
-        _currentEffect->Disable();
-        _currentEffect->Finish();
-        _huestream->UnlockMixer();
-        _currentEffect = nullptr;
-    }
+    return computedColor;
 }

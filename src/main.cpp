@@ -1,7 +1,7 @@
 #include "effects/BezierFadeEffect.h"
-#include "effects/FadeEffect.h"
 #include "hue/HueController.h"
 // #include "ndi/NDIController.h"
+#include "hue/Scene.h"
 #include "utils/SignalHandler.h"
 #include <csignal>
 #include <iostream>
@@ -31,7 +31,8 @@ int main(int argc, char *argv[]) {
 
         if (!(std::cin >> choice)) {
             std::cin.clear();
-            if (SignalHandler::isShutdownRequested()) break;
+            if (SignalHandler::isShutdownRequested())
+                break;
             std::cin.ignore(10000, '\n');
             std::cout << "Invalid input. Please enter a number." << std::endl;
             continue;
@@ -49,10 +50,34 @@ int main(int argc, char *argv[]) {
 
                 if (initialized) {
                     auto huestream = hueController.getHueStream();
-                    // auto fade = std::make_shared<FadeEffect>(huestream);
-                    auto bezier = std::make_shared<BezierFadeEffect>(huestream);
-                    hueController.runEffect(bezier);
+                    auto effect = std::make_shared<BezierFadeEffect>();
+                    Scene scene(huestream, "Debug Scene", 0);
+                    auto mainGroup =
+                        huestream->GetLoadedBridge()->GetGroups()->at(0);
+                    auto lights = mainGroup->GetLights();
+                    if (!lights || lights->empty()) {
+                        std::cerr << "The lights is empty or not valid" << std::endl;
+                        break;
+                    }
+                    // get randomly 5 lights from the group (not need to be a solid random selection, just for testing)
+                    std::srand(static_cast<unsigned int>(std::time(nullptr)));
+
+                    std::vector<std::string> lightIds;
+
+                    for (size_t i = 0; i < lights->size() && i < 5; i++) {
+                        int randomIndex = std::rand() % lights->size();
+                        lightIds.push_back(lights->at(randomIndex)->GetId());
+                    }
+
+                    AddEffectParams params;
+                    params.lightIds = lightIds;
+                    params.groupIds = {mainGroup->GetId()};
+                    params.effect = effect;
+                    scene.addBinding(params);
+                    scene.run(
+                        []() { return SignalHandler::isShutdownRequested(); });
                 }
+
                 break;
             }
 
