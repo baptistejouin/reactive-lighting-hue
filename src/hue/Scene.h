@@ -21,7 +21,7 @@ struct EffectBinding {
                    // backward in a loop
 };
 
-struct AddEffectParams;
+const int DEFAULT_BINDING_DURATION_MS = 1000;
 
 class Scene {
   public:
@@ -31,12 +31,14 @@ class Scene {
 
     // target specific lights
     void addBinding(std::vector<std::string> lightIds,
-                    std::shared_ptr<IEffect> effect, int durationMs = 1000,
+                    std::shared_ptr<IEffect> effect,
+                    int durationMs = DEFAULT_BINDING_DURATION_MS,
                     bool pingPong = false);
 
     // target all lights in a group
     void addBinding(std::string groupId, std::shared_ptr<IEffect> effect,
-                    int durationMs = 1000, bool pingPong = false);
+                    int durationMs = DEFAULT_BINDING_DURATION_MS,
+                    bool pingPong = false);
     void run(std::function<bool()> shouldShutdown);
 
   private:
