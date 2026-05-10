@@ -21,15 +21,7 @@ struct EffectBinding {
                    // backward in a loop
 };
 
-struct AddEffectParams {
-    std::vector<std::string>
-        lightIds; // TODO: make this optional and use all the lights in the
-                  // group if not specified
-    std::vector<std::string> groupIds;
-    std::shared_ptr<IEffect> effect;
-    int durationMs = 1000;
-    bool pingPong = false;
-};
+struct AddEffectParams;
 
 class Scene {
   public:
@@ -37,7 +29,14 @@ class Scene {
           int priority = 0);
     ~Scene();
 
-    void addBinding(AddEffectParams);
+    // target specific lights
+    void addBinding(std::vector<std::string> lightIds,
+                    std::shared_ptr<IEffect> effect, int durationMs = 1000,
+                    bool pingPong = false);
+
+    // target all lights in a group
+    void addBinding(std::string groupId, std::shared_ptr<IEffect> effect,
+                    int durationMs = 1000, bool pingPong = false);
     void run(std::function<bool()> shouldShutdown);
 
   private:

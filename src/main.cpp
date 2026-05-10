@@ -50,16 +50,18 @@ int main(int argc, char *argv[]) {
 
                 if (initialized) {
                     auto huestream = hueController.getHueStream();
-                    auto effect = std::make_shared<BezierFadeEffect>();
+                    auto bezierEffect = std::make_shared<BezierFadeEffect>();
                     Scene scene(huestream, "Debug Scene", 0);
                     auto mainGroup =
                         huestream->GetLoadedBridge()->GetGroups()->at(0);
                     auto lights = mainGroup->GetLights();
                     if (!lights || lights->empty()) {
-                        std::cerr << "The lights is empty or not valid" << std::endl;
+                        std::cerr << "The lights is empty or not valid"
+                                  << std::endl;
                         break;
                     }
-                    // get randomly 5 lights from the group (not need to be a solid random selection, just for testing)
+                    // get randomly 5 lights from the group (not need to be a
+                    // solid random selection, just for testing)
                     std::srand(static_cast<unsigned int>(std::time(nullptr)));
 
                     std::vector<std::string> lightIds;
@@ -68,12 +70,7 @@ int main(int argc, char *argv[]) {
                         int randomIndex = std::rand() % lights->size();
                         lightIds.push_back(lights->at(randomIndex)->GetId());
                     }
-
-                    AddEffectParams params;
-                    params.lightIds = lightIds;
-                    params.groupIds = {mainGroup->GetId()};
-                    params.effect = effect;
-                    scene.addBinding(params);
+                    scene.addBinding(lightIds, bezierEffect, 8000, true);
                     scene.run(
                         []() { return SignalHandler::isShutdownRequested(); });
                 }
