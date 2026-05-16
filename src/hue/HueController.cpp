@@ -1,8 +1,9 @@
-#include "HueController.h"
-#include "../utils/SignalHandler.h"
+#include <cstdlib>
+#include <hue/HueController.h>
 #include <iostream>
 #include <memory>
 #include <support/network/NetworkConfiguration.h>
+#include <utils/SignalHandler.h>
 
 HueController::HueController() {}
 
@@ -12,21 +13,22 @@ bool HueController::initialize() {
     try {
         std::cout << "Setting up HueStream library..." << std::endl;
 
-        m_config = std::make_shared<huestream::Config>(
+        _config = std::make_shared<huestream::Config>(
             "LightEffects", "MacBookARM",
-            huestream::PersistenceEncryptionKey("secret_key")); // TODO
-        m_config->SetStreamingMode(huestream::STREAMING_MODE_UDP);
+            huestream::PersistenceEncryptionKey(
+                std::getenv("HUE_ENCRYPTION_KEY")));
+        _config->SetStreamingMode(huestream::STREAMING_MODE_UDP);
 
-        m_huestream = std::make_shared<huestream::HueStream>(m_config);
+        _huestream = std::make_shared<huestream::HueStream>(_config);
 
-        setupFeedbackCallback();
+        _setupFeedbackCallback();
 
         std::cout << "HueStream library initialized" << std::endl;
 
-        connectToBridge();
+        _connectToBridge();
 
-        return m_huestream->IsStreamableBridgeLoaded() ||
-               m_huestream->IsBridgeStreaming();
+        return _huestream->IsStreamableBridgeLoaded() ||
+               _huestream->IsBridgeStreaming();
 
     } catch (const std::exception &e) {
         std::cerr << "Failed to initialize Hue controller: " << e.what()
@@ -35,11 +37,11 @@ bool HueController::initialize() {
     }
 }
 
-void HueController::setupFeedbackCallback() {
-    m_huestream->RegisterFeedbackCallback(
+void HueController::_setupFeedbackCallback() {
+    _huestream->RegisterFeedbackCallback(
         [](const huestream::FeedbackMessage &message) {
-            // std::cout << "[" << message.GetId() << "] " << message.GetTag()
-            //           << std::endl;
+            std::cout << "[" << message.GetId() << "] " << message.GetTag()
+                      << std::endl;
 
             if (message.GetId() ==
                 huestream::FeedbackMessage::ID_DONE_COMPLETED) {
@@ -54,28 +56,27 @@ void HueController::setupFeedbackCallback() {
         });
 }
 
-void HueController::connectToBridge() {
+void HueController::_connectToBridge() {
     std::cout << "\nConnecting to bridge..." << std::endl;
 
     auto bridge =
-        std::make_shared<huestream::Bridge>(m_config->GetBridgeSettings());
-    // bridge->SetIpAddress("192.168.0.132");
+        std::make_shared<huestream::Bridge>(_config->GetBridgeSettings());
     bridge->SetIpAddress("127.0.0.1");
     bridge->SetUser("aSimulatedUser");
     bridge->SetClientKey("01234567890123456789012345678901");
-    m_huestream->ConnectManualBridgeInfo(bridge);
+    _huestream->ConnectManualBridgeInfo(bridge);
 
-    while (!m_huestream->IsBridgeStreaming() &&
+    while (!_huestream->IsBridgeStreaming() &&
            !SignalHandler::isShutdownRequested()) {
 
-        auto loadedBridge = m_huestream->GetLoadedBridge();
+        auto loadedBridge = _huestream->GetLoadedBridge();
         std::cout << "Bridge status: " << loadedBridge->GetStatusTag()
                   << std::endl;
 
         if (loadedBridge->GetStatus() ==
             huestream::BRIDGE_INVALID_GROUP_SELECTED) {
             std::cout << "Selecting first entertainment group..." << std::endl;
-            m_huestream->SelectGroup(loadedBridge->GetGroups()->at(0));
+            _huestream->SelectGroup(loadedBridge->GetGroups()->at(0));
 
         } else if (loadedBridge->GetStatus() != huestream::BRIDGE_READY &&
                    loadedBridge->GetStatus() != huestream::BRIDGE_STREAMING) {
@@ -85,7 +86,7 @@ void HueController::connectToBridge() {
             std::cin.get();
             if (SignalHandler::isShutdownRequested())
                 break;
-            m_huestream->ConnectManualBridgeInfo(bridge);
+            _huestream->ConnectManualBridgeInfo(bridge);
         }
     }
 
@@ -95,13 +96,13 @@ void HueController::connectToBridge() {
 }
 
 std::shared_ptr<huestream::HueStream> HueController::getHueStream() {
-    return m_huestream;
+    return _huestream;
 };
 
 void HueController::shutdown() {
-    if (m_huestream) {
+    if (_huestream) {
         std::cout << "\nShutting down HueStream library..." << std::endl;
-        m_huestream->ShutDown();
+        _huestream->ShutDown();
         std::cout << "Shutdown completed!" << std::endl;
     }
 }
