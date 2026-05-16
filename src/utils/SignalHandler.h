@@ -12,8 +12,8 @@ class SignalHandler {
     static void requestShutdown();
 
   private:
-    static std::atomic<bool> s_shutdownRequested;
-    static void signalHandler(int signum);
+    static std::atomic<bool> _shutdownRequested;
+    static void _signalHandler(int signum);
 };
 
 #endif // SIGNAL_HANDLER_H
