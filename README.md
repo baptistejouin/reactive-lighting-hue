@@ -72,3 +72,12 @@ cmake --build build
 ```sh
 ./build/boiler-hue-edk
 ```
+
+## Run the light simulator
+
+The hue EDK library comes with a web simulator, very useful for working with multiple lights and preparing any type of composition.
+
+```sh
+cd ./build/_deps/philips_edk-src/tools/simulator/
+node server/main.js
+```
