@@ -1,13 +1,10 @@
-#include "Scene.h"
-#include "huestream/HueStream.h"
-#include "huestream/effect/effects/ManualEffect.h"
-#include "huestream/effect/effects/base/Effect.h"
-#include <chrono>
+#include <cmath>
+#include <hue/Scene.h>
+#include <huestream/HueStream.h>
+#include <huestream/effect/effects/ManualEffect.h>
+#include <huestream/effect/effects/base/Effect.h>
 #include <iostream>
 #include <memory>
-#include <thread>
-
-const int REFRESH_RATE_MS = 20;
 
 Scene::Scene(std::shared_ptr<huestream::HueStream> huestream, std::string name,
              int priority)
@@ -31,30 +28,31 @@ Scene::~Scene() {
 
 // target specific lights
 void Scene::addBinding(std::vector<std::string> lightIds,
-                       std::shared_ptr<IEffect> effect, int durationMs,
-                       bool pingPong) {
-
-    EffectBinding binding;
-    binding.effect = effect;
-    binding.durationMs = durationMs;
-    binding.pingPong = pingPong;
+                       std::shared_ptr<IEffect> effect, float phaseOffset,
+                       float phaseMultiplier, bool pingPong) {
 
     if (lightIds.empty()) {
         std::cerr << "lightIds param is empty" << std::endl;
         return;
     }
 
+    EffectBinding binding;
+    binding.effect = effect;
+    binding.pingPong = pingPong;
+    binding.phaseMultiplier = phaseMultiplier;
+    binding.phaseOffset = phaseOffset;
     binding.lightIds = lightIds;
-
     _bindings.push_back(binding);
 }
 
 // target all lights in a group
 void Scene::addBinding(std::string groupId, std::shared_ptr<IEffect> effect,
-                       int durationMs, bool pingPong) {
+                       float phaseOffset, float phaseMultiplier,
+                       bool pingPong) {
 
     if (groupId.empty()) {
-        std::cerr << "groupId param is empty ";
+        std::cerr << "groupId cannot be empty";
+        return;
     }
 
     auto group = _huestream->GetLoadedBridge()->GetGroupById(groupId);
@@ -62,11 +60,12 @@ void Scene::addBinding(std::string groupId, std::shared_ptr<IEffect> effect,
 
     EffectBinding binding;
     binding.effect = effect;
-    binding.durationMs = durationMs;
     binding.pingPong = pingPong;
+    binding.phaseOffset = phaseOffset;
+    binding.phaseMultiplier = phaseMultiplier;
 
     if (!lights || lights->empty()) {
-        std::cerr << "The lights is empty or not valid" << std::endl;
+        std::cerr << "lights cannot be empty" << std::endl;
         return;
     }
 
@@ -77,42 +76,79 @@ void Scene::addBinding(std::string groupId, std::shared_ptr<IEffect> effect,
     _bindings.push_back(binding);
 }
 
-void Scene::run(std::function<bool()> shouldShutdown) {
-    std::vector<BindingState> states(_bindings.size());
+void Scene::tick(float phase) {
+    _huestream->LockMixer();
 
-    while (!shouldShutdown()) {
-        _huestream->LockMixer();
+    for (auto &binding : _bindings) {
+        float t;
 
-        for (size_t i = 0; i < _bindings.size(); i++) {
-            BindingState &state = states[i];
-            EffectBinding &binding = _bindings[i];
-
-            state.elapsedMs += REFRESH_RATE_MS;
-
-            float t = state.elapsedMs / binding.durationMs;
-
-            if (t > 1.0) {
-                if (binding.pingPong) {
-                    state.reverse = !state.reverse;
+        if (binding.phaseWindow > 0.0f) {
+            float patternPhase = fmod(phase * binding.phaseMultiplier, 1.0f);
+            if (binding.phaseEnd <= 1.0f) {
+                if (patternPhase < binding.phaseOffset ||
+                    patternPhase >= binding.phaseEnd) {
+                    t = 1.0f;
+                } else {
+                    t = (patternPhase - binding.phaseOffset) / binding.phaseWindow;
                 }
-                state.elapsedMs = 0;
-                t = 0;
+            } else {
+                // window wraps around cycle boundary
+                if (patternPhase >= binding.phaseOffset) {
+                    t = (patternPhase - binding.phaseOffset) / binding.phaseWindow;
+                } else if (patternPhase < binding.phaseEnd - 1.0f) {
+                    t = (patternPhase + 1.0f - binding.phaseOffset) / binding.phaseWindow;
+                } else {
+                    t = 1.0f;
+                }
             }
-
-            if (state.reverse) {
-                t = 1.0 - t;
-            }
-
-            for (auto lightId : binding.lightIds) {
-                _currentStreamEffect->SetIdToColor(
-                    lightId,
-                    binding.effect->compute(t)); // TODO: compute "t" based on
-                                                 // time and effect duration
+        } else {
+            t = fmod(phase * binding.phaseMultiplier + binding.phaseOffset,
+                     1.0f);
+            if (binding.pingPong) {
+                t = t < 0.5f ? t * 2.0f : (1.0f - t) * 2.0f;
             }
         }
 
-        _huestream->UnlockMixer();
+        for (auto lightId : binding.lightIds) {
+            _currentStreamEffect->SetIdToColor(lightId,
+                                               binding.effect->compute(t));
+        }
+    }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(REFRESH_RATE_MS));
+    _huestream->UnlockMixer();
+}
+
+void Scene::withDistribution(std::vector<std::string> orderedLightIds,
+                             std::shared_ptr<IEffect> effect, float cycleBeats,
+                             float activeFraction, float overlap) {
+    const int N = orderedLightIds.size();
+
+    if (N <= 0) {
+        std::cerr << "lightIds cannot be empty" << std::endl;
+        return;
+    }
+
+    if (cycleBeats <= 0) {
+        std::cerr << "cycleBeats cannot be <= 0" << std::endl;
+        return;
+    }
+
+    if (activeFraction <= 0.0f || activeFraction > 1.0f) {
+        std::cerr << "activeFraction must be in (0, 1]" << std::endl;
+        return;
+    }
+
+    float phaseMultiplier = 1.0f / cycleBeats;
+    float stagger = activeFraction / N;
+
+    for (int i = 0; i < N; i++) {
+        EffectBinding binding;
+        binding.effect = effect;
+        binding.phaseMultiplier = phaseMultiplier;
+        binding.phaseOffset = stagger * static_cast<float>(i);
+        binding.phaseWindow = stagger * (1.0f + overlap);
+        binding.phaseEnd = binding.phaseOffset + binding.phaseWindow;
+        binding.lightIds = {orderedLightIds.at(i)};
+        _bindings.push_back(binding);
     }
 }

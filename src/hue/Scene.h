@@ -1,27 +1,21 @@
 #pragma once
 
-#include "effects/IEffect.h"
-#include "huestream/effect/effects/ManualEffect.h"
-#include <functional>
+#include <effects/IEffect.h>
 #include <huestream/HueStream.h>
+#include <huestream/effect/effects/ManualEffect.h>
 #include <memory>
 #include <string>
 #include <vector>
 
-struct BindingState {
-    float elapsedMs = 0;
-    bool reverse = false;
-};
-
 struct EffectBinding {
     std::vector<std::string> lightIds;
     std::shared_ptr<IEffect> effect;
-    int durationMs;
-    bool pingPong; // if true, the effect will play forward and then
-                   // backward in a loop
+    float phaseOffset = 0.0f;
+    float phaseEnd = 0.0f;    // explicit end — avoids float accumulation error
+    float phaseWindow = 0.0f; // >0 = windowed one-shot mode, 0 = continuous fmod mode
+    float phaseMultiplier = 1.0f;
+    bool pingPong = false;
 };
-
-const int DEFAULT_BINDING_DURATION_MS = 1000;
 
 class Scene {
   public:
@@ -31,15 +25,20 @@ class Scene {
 
     // target specific lights
     void addBinding(std::vector<std::string> lightIds,
-                    std::shared_ptr<IEffect> effect,
-                    int durationMs = DEFAULT_BINDING_DURATION_MS,
-                    bool pingPong = false);
+                    std::shared_ptr<IEffect> effect, float phaseOffset = 0.0,
+                    float phaseMultiplier = 1.0, bool pingPong = false);
 
     // target all lights in a group
     void addBinding(std::string groupId, std::shared_ptr<IEffect> effect,
-                    int durationMs = DEFAULT_BINDING_DURATION_MS,
+                    float phaseOffset = 0.0, float phaseMultiplier = 1.0,
                     bool pingPong = false);
-    void run(std::function<bool()> shouldShutdown);
+
+    void withDistribution(std::vector<std::string> orderedLightIds,
+                          std::shared_ptr<IEffect> effect,
+                          float cycleBeats = 1.0f, float activeFraction = 1.0f,
+                          float overlap = 0.0f);
+
+    void tick(float phase);
 
   private:
     std::vector<EffectBinding> _bindings;

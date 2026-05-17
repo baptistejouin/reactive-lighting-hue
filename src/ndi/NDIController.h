@@ -12,13 +12,13 @@ class NDIController {
     void shutdown();
 
   private:
-    bool findSource(const std::string &sourceName);
-    void processFrame();
-    void displayFrameWithAverageColor();
+    bool _findSource(const std::string &sourceName);
+    void _processFrame();
+    void _displayFrameWithAverageColor();
 
-    std::string m_sourceName;
+    std::string _sourceName;
 
-    NDIlib_find_instance_t m_findInstance;
-    NDIlib_recv_instance_t m_recvInstance;
-    bool m_ndiInitialized;
+    NDIlib_find_instance_t _findInstance;
+    NDIlib_recv_instance_t _recvInstance;
+    bool _ndiInitialized;
 };

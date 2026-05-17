@@ -10,3 +10,6 @@ _deps/
 
 /lib
 .cache
+.env
+bridge.json
+

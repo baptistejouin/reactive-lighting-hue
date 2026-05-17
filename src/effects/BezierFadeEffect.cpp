@@ -51,7 +51,7 @@ huestream::Color BezierFadeEffect::compute(float t) const {
     easeOut.y2 = 1.00;
 
     Color baseColor(1.0, 1.0, 1.0);
-    double intensity = solveBezier(t, easeOut);
+    double intensity = solveBezier(1.0f - t, easeOut);
 
     Color computedColor(baseColor.GetR() * intensity,
                         baseColor.GetG() * intensity,
