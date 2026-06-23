@@ -6,8 +6,8 @@ using namespace huestream;
 
 struct BezierCurve {
     float x1;
-    float y1;
     float x2;
+    float y1;
     float y2;
 };
 
@@ -46,8 +46,8 @@ huestream::Color BezierFadeEffect::compute(float t) const {
     // NOTE: https://easings.net/#
     BezierCurve easeOut;
     easeOut.x1 = 0.83;
-    easeOut.y1 = 0.00;
     easeOut.x2 = 0.17;
+    easeOut.y1 = 0.00;
     easeOut.y2 = 1.00;
 
     Color baseColor(1.0, 1.0, 1.0);

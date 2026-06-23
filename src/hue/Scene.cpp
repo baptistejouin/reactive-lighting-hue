@@ -89,14 +89,17 @@ void Scene::tick(float phase) {
                     patternPhase >= binding.phaseEnd) {
                     t = 1.0f;
                 } else {
-                    t = (patternPhase - binding.phaseOffset) / binding.phaseWindow;
+                    t = (patternPhase - binding.phaseOffset) /
+                        binding.phaseWindow;
                 }
             } else {
                 // window wraps around cycle boundary
                 if (patternPhase >= binding.phaseOffset) {
-                    t = (patternPhase - binding.phaseOffset) / binding.phaseWindow;
+                    t = (patternPhase - binding.phaseOffset) /
+                        binding.phaseWindow;
                 } else if (patternPhase < binding.phaseEnd - 1.0f) {
-                    t = (patternPhase + 1.0f - binding.phaseOffset) / binding.phaseWindow;
+                    t = (patternPhase + 1.0f - binding.phaseOffset) /
+                        binding.phaseWindow;
                 } else {
                     t = 1.0f;
                 }

@@ -13,10 +13,16 @@ bool HueController::initialize() {
     try {
         std::cout << "Setting up HueStream library..." << std::endl;
 
+        const char *encKey = std::getenv("HUE_ENCRYPTION_KEY");
+        if (!encKey) {
+            std::cerr << "HUE_ENCRYPTION_KEY environment variable is not set"
+                      << std::endl;
+            return false;
+        }
+
         _config = std::make_shared<huestream::Config>(
             "LightEffects", "MacBookARM",
-            huestream::PersistenceEncryptionKey(
-                std::getenv("HUE_ENCRYPTION_KEY")));
+            huestream::PersistenceEncryptionKey(encKey));
         _config->SetStreamingMode(huestream::STREAMING_MODE_UDP);
 
         _huestream = std::make_shared<huestream::HueStream>(_config);

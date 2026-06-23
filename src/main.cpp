@@ -6,7 +6,6 @@
 #include <iostream>
 #include <memory>
 #include <runner/Runner.h>
-#include <set>
 #include <utils/SignalHandler.h>
 // #include "ndi/NDIController.h"
 
@@ -23,13 +22,13 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    auto scene = std::make_shared<Scene>(huestream, "Main Scene", 0);
+    auto bezierEffect = std::make_shared<BezierFadeEffect>();
     auto clock = std::make_shared<BeatClock>(120.0f); // bpm
-    auto mainGroup = huestream->GetLoadedBridge()->GetGroups()->at(0);
-    auto lights = mainGroup->GetLights();
+    auto scene = std::make_shared<Scene>(huestream, "Main Scene", 0);
     Runner runner(clock);
 
-    auto bezierEffect = std::make_shared<BezierFadeEffect>();
+    auto mainGroup = huestream->GetLoadedBridge()->GetGroups()->at(0);
+    auto lights = mainGroup->GetLights();
 
     if (!lights || lights->empty()) {
         std::cerr << "The lights is empty or "
@@ -39,7 +38,7 @@ int main(int argc, char *argv[]) {
     }
 
     std::vector<std::string> lightIds;
-    const int nbLight = 2;
+    const int nbLight = 8;
     // std::set<int> usedIndices;
 
     // std::srand(static_cast<unsigned int>(std::time(nullptr)));
