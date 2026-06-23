@@ -58,7 +58,26 @@ Required by curl (bundled in the EDK):
 brew install libidn2
 ```
 
-## Build
+## Usage
+
+This project uses [just](https://github.com/casey/just) as a command runner. Install it with:
+
+```sh
+brew install just
+```
+
+| Command | Description |
+|---------|-------------|
+| `just build` | Configure + compile (default) |
+| `just run` | Run the app (auto-loads `.env`) |
+| `just simulator` | Start the Hue light simulator |
+| `just dev` | Run simulator + app in parallel |
+| `just clean` | Wipe build directory |
+| `just configure` | CMake configure only |
+
+### Manual build
+
+If you prefer not to use `just`:
 
 ```sh
 cmake -S . -B build
@@ -67,17 +86,10 @@ cmake --build build
 
 > In-source builds (`cmake .`) are not allowed — the build directory must be separate from the source root.
 
-## Run
+### Light simulator
+
+The Hue EDK comes with a web simulator, useful for working with multiple lights and preparing compositions.
 
 ```sh
-./build/boiler-hue-edk
-```
-
-## Run the light simulator
-
-The hue EDK library comes with a web simulator, very useful for working with multiple lights and preparing any type of composition.
-
-```sh
-cd ./build/_deps/philips_edk-src/tools/simulator/
-node server/main.js
+node ./build/_deps/philips_edk-src/tools/simulator/server/main.js
 ```
